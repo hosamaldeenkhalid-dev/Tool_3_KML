@@ -4,73 +4,74 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Export to KMZ</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 body { font-family:'Segoe UI',Arial,sans-serif; font-size:13px; background:#fff; color:#333; }
-.hdr { background:#1a3a2a; color:#fff; padding:10px 14px; font-size:13px; font-weight:700; }
+.hdr { background:#1a3a2a; color:#fff; padding:10px 14px; font-size:14px; font-weight:700; }
 .body { padding:12px 14px; }
-.bar { font-size:11px; padding:5px 8px; border-radius:3px; margin-bottom:8px; }
+.bar { font-size:11px; padding:6px 9px; border-radius:3px; margin-bottom:8px; line-height:1.4; }
 .ok   { background:#eafaf1; color:#1e8449; border:1px solid #a9dfbf; }
 .warn { background:#fff8e1; color:#b7770d; border:1px solid #ffe082; }
 .err  { background:#fdecea; color:#922b21; border:1px solid #f5c6cb; }
 .info { background:#f0f4ff; color:#2471a3; border:1px solid #c3d3f7; }
-.sec  { font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.5px; margin:8px 0 4px; }
+.sec  { font-size:11px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:.5px; margin:10px 0 4px; }
 label.lbl { display:block; font-weight:600; margin-bottom:3px; color:#444; font-size:12px; }
-input[type=text],input[type=password],textarea { width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:3px; font-size:12px; margin-bottom:8px; color:#222; font-family:inherit; }
+input[type=text],input[type=password],textarea {
+  width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:3px;
+  font-size:12px; margin-bottom:8px; color:#222; font-family:inherit;
+}
 textarea { resize:vertical; font-family:monospace; font-size:11px; }
-.btn  { width:100%; padding:7px; margin-bottom:8px; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; border:1px solid #bdd4f0; background:#eaf3ff; color:#1a4f8a; }
+.btn { width:100%; padding:8px; margin-bottom:8px; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; border:1px solid #bdd4f0; background:#eaf3ff; color:#1a4f8a; }
 .btn:hover:not(:disabled) { background:#d4e9ff; }
 .btn:disabled { opacity:.5; cursor:not-allowed; }
-.btn-exp { width:100%; padding:10px; background:#1a3a2a; color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:700; cursor:pointer; letter-spacing:.4px; margin-bottom:8px; }
+.btn-exp { width:100%; padding:11px; background:#1a3a2a; color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:8px; }
 .btn-exp:hover:not(:disabled) { background:#24503c; }
-.btn-exp:disabled { background:#999; cursor:not-allowed; }
+.btn-exp:disabled { background:#aaa; cursor:not-allowed; }
 .btn-exp.done { background:#1e8449; }
 .btn-exp.errb { background:#c0392b; }
-.field-list { border:1px solid #ccc; border-radius:3px; max-height:150px; overflow-y:auto; margin-bottom:8px; background:#fafafa; }
-.fl-hd { display:flex; gap:6px; padding:4px 8px; border-bottom:1px solid #eee; background:#f0f0f0; position:sticky; top:0; }
+.field-list { border:1px solid #ccc; border-radius:3px; max-height:160px; overflow-y:auto; margin-bottom:8px; }
+.fl-hd { display:flex; gap:6px; padding:4px 8px; background:#f0f0f0; border-bottom:1px solid #ddd; position:sticky; top:0; }
 .fl-hd button { font-size:11px; padding:2px 8px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:3px; }
-.fi { display:flex; align-items:center; gap:7px; padding:4px 10px; border-bottom:1px solid #f0f0f0; cursor:pointer; font-size:12px; }
+.fi { display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #f0f0f0; cursor:pointer; font-size:12px; }
 .fi:hover { background:#f5f5f5; }
 .fi.on { background:#eaf3ff; }
-.prog-wrap { width:100%; height:5px; background:#e0e0e0; border-radius:3px; margin-bottom:8px; overflow:hidden; display:none; }
-.prog-fill { height:100%; width:0%; background:#1a3a2a; border-radius:3px; transition:width .4s; }
-.note { font-size:11px; color:#888; padding:4px 8px; background:#f9f9f9; border:1px solid #eee; border-radius:3px; margin-bottom:8px; }
-.divider { border:none; border-top:1px solid #eee; margin:8px 0; }
+.prog-wrap { height:6px; background:#e0e0e0; border-radius:3px; margin-bottom:8px; overflow:hidden; display:none; }
+.prog-fill { height:100%; width:0%; background:#1a3a2a; border-radius:3px; transition:width .3s; }
+.divider { border:none; border-top:1px solid #eee; margin:10px 0; }
 .login-box { border:1px solid #ddd; border-radius:4px; padding:10px; margin-bottom:10px; background:#f9f9f9; }
 .row2 { display:flex; gap:8px; }
 .row2 > * { flex:1; }
-.filter-preview { padding:5px 8px; background:#f0f4ff; border:1px solid #c3d3f7; border-radius:3px; font-size:11px; font-family:monospace; color:#2471a3; word-break:break-all; max-height:50px; overflow-y:auto; margin-bottom:6px; min-height:22px; }
-.count-badge { display:inline-block; padding:2px 8px; background:#1a3a2a; color:#fff; border-radius:10px; font-size:11px; font-weight:700; margin-left:6px; }
+.filter-sql { padding:5px 8px; background:#f0f4ff; border:1px solid #c3d3f7; border-radius:3px; font-size:11px; font-family:monospace; color:#1a3a2a; word-break:break-all; max-height:55px; overflow-y:auto; margin-bottom:6px; display:none; }
+.badge { display:inline-block; padding:1px 7px; background:#1a3a2a; color:#fff; border-radius:9px; font-size:11px; font-weight:700; margin-left:5px; }
+.debug-box { padding:6px 8px; background:#fff8e1; border:1px solid #ffe082; border-radius:3px; font-size:10px; font-family:monospace; max-height:80px; overflow-y:auto; margin-bottom:8px; color:#666; display:none; }
 </style>
 </head>
 <body>
 <div class="hdr">&#11015; Export to KMZ</div>
 <div class="body">
 
-<!-- Status bars -->
-<div id="sConn" class="bar warn">&#9675; Connecting...</div>
+<div id="sConn" class="bar warn">&#9675; Initializing...</div>
 <div id="sToken" class="bar ok" style="display:none;"></div>
 
-<!-- Login -->
+<!-- Login box -->
 <div id="loginBox" class="login-box" style="display:none;">
-  <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:8px;">&#128274; Enterprise Login</div>
+  <div style="font-weight:700;font-size:12px;margin-bottom:8px;">&#128274; Enterprise Login</div>
   <div class="row2">
     <div><label class="lbl">Username</label><input type="text" id="iUser" value="hkhalid"></div>
     <div><label class="lbl">Password</label><input type="password" id="iPass" placeholder="Password"></div>
   </div>
   <button class="btn" id="btnLogin" onclick="doLogin()">&#128274; Login</button>
-  <div id="loginErr" class="bar err" style="display:none;"></div>
+  <div id="loginErr" style="display:none;" class="bar err"></div>
 </div>
 
-<!-- Layer URL -->
-<div class="sec">Feature Layer</div>
+<!-- Layer -->
+<div class="sec">Feature Layer URL</div>
 <textarea id="layerUrl" rows="2">https://arcgis.balad.com.sa/server/rest/services/Hosted/Final_GDB_BDC_Project_Analysis/FeatureServer/1</textarea>
 <button class="btn" id="btnLoad" onclick="loadFields()" disabled>&#8635; Load Fields from Layer</button>
 
 <!-- Fields -->
 <div id="fieldSec" style="display:none;">
-  <div class="sec">Popup Fields <span id="selCount" class="count-badge">0</span></div>
+  <div class="sec">Popup Fields <span id="selBadge" class="badge">0</span></div>
   <div class="field-list">
     <div class="fl-hd">
       <button onclick="selAll()">All</button>
@@ -80,547 +81,527 @@ textarea { resize:vertical; font-family:monospace; font-size:11px; }
   </div>
 </div>
 
-<!-- Filter status -->
-<div class="sec">Map Filter Status</div>
-<div id="filterBar" class="bar warn">&#9675; Waiting for map...</div>
-<div id="filterPreview" class="filter-preview" style="display:none;"></div>
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+<!-- Filter -->
+<div class="sec">Map Filter</div>
+<div id="filterBar" class="bar warn">&#9675; Waiting...</div>
+<div id="filterSql" class="filter-sql"></div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;">
   <input type="checkbox" id="autoSync" checked onchange="toggleAuto(this.checked)">
-  <span style="font-size:11px;color:#555;">Auto-sync every 2s</span>
-  <button class="btn" style="width:auto;padding:3px 10px;margin:0;font-size:11px;" onclick="syncFilter()">&#8635; Sync Now</button>
+  <label for="autoSync" style="color:#555;">Auto-sync every 2s</label>
+  <button class="btn" style="width:auto;padding:3px 10px;margin:0;" onclick="syncFilter()">&#8635; Sync</button>
 </div>
+
+<!-- Debug (hidden by default, shows layer scan results) -->
+<div id="debugBox" class="debug-box"></div>
 
 <!-- Output -->
 <div class="sec">Output</div>
 <label class="lbl">File Name</label>
 <input type="text" id="outName" value="BDC_Assets_Export">
-<div class="note">KML title = <strong>assets_id</strong> field &nbsp;|&nbsp; KMZ saves to your Downloads folder</div>
+<div style="font-size:11px;color:#888;margin-bottom:8px;">KMZ will download to your browser Downloads folder</div>
 
 <hr class="divider">
 
-<!-- Export button -->
 <button class="btn-exp" id="btnExp" onclick="doExport()" disabled>&#11015; Load Fields First</button>
 <div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill"></div></div>
 <div id="msgBox" class="bar" style="display:none;"></div>
 
-</div><!-- /body -->
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// CONFIG — update if needed
-// ═══════════════════════════════════════════════════════
-var PORTAL  = 'https://arcgis.balad.com.sa/portal';
-var SERVER  = 'https://arcgis.balad.com.sa/server';
-// Keywords to match your BDC Assets layer in the map
-var LAYER_KEYWORDS = ['final_gdb_bdc', 'bdc_project', 'featureserver/1'];
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+var PORTAL = 'https://arcgis.balad.com.sa/portal';
+var SERVER = 'https://arcgis.balad.com.sa/server';
 
-// ═══════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════
+// ── STATE ─────────────────────────────────────────────────────────────────────
 var token      = '';
-var allFields  = [];    // all field names from layer
-var selFields  = [];    // user-selected popup fields
-var titleField = '';    // auto-detected title field (assets_id variant)
-var curWhere   = '1=1'; // current WHERE from map filter
-var curCount   = -1;    // feature count with current filter
+var allFields  = [];
+var selFields  = [];
+var titleField = '';
+var curWhere   = '1=1';
 var autoTimer  = null;
-var mapLayerRef = null; // reference to the actual map layer object
+var cachedLayer = null;
 
-// ═══════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════
-function bar(id, text, cls) {
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
+function bar(id, html, cls) {
   var el = document.getElementById(id);
-  el.className = 'bar ' + cls;
-  el.innerHTML = text;
+  el.className = 'bar ' + (cls||'info');
+  el.innerHTML = html;
   el.style.display = 'block';
 }
-function hideEl(id) { document.getElementById(id).style.display = 'none'; }
-function showEl(id) { document.getElementById(id).style.display = 'block'; }
-function prog(pct) { document.getElementById('progFill').style.width = pct + '%'; }
-function showProg(v) { document.getElementById('progWrap').style.display = v ? 'block' : 'none'; }
-function setExpBtn(state) {
-  var b = document.getElementById('btnExp');
-  b.className = 'btn-exp';
-  if (state === 'idle')    { b.textContent = '\u2B07 Export ' + (curCount > 0 ? curCount : '') + ' Features to KMZ'; b.disabled = false; }
-  if (state === 'run')     { b.textContent = '\u23F3 Exporting...'; b.disabled = true; }
-  if (state === 'done')    { b.textContent = '\u2713 Export Again'; b.className = 'btn-exp done'; b.disabled = false; }
-  if (state === 'err')     { b.textContent = '\u21BA Try Again'; b.className = 'btn-exp errb'; b.disabled = false; }
-  if (state === 'nofield') { b.textContent = '\u2B07 Load Fields First'; b.disabled = true; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function show(id, disp) { document.getElementById(id).style.display = disp||'block'; }
+function prog(p) { document.getElementById('progFill').style.width = p + '%'; }
+function showProg(v) { document.getElementById('progWrap').style.display = v?'block':'none'; }
+function debug(msg) {
+  var b = document.getElementById('debugBox');
+  b.style.display = 'block';
+  b.innerHTML += msg + '<br>';
+  b.scrollTop = b.scrollHeight;
 }
-function updateSelCount() {
-  document.getElementById('selCount').textContent = selFields.length;
+function setExpBtn(s, label) {
+  var b = document.getElementById('btnExp');
+  b.className = 'btn-exp' + (s==='done'?' done':s==='err'?' errb':'');
+  b.textContent = label || (s==='idle'?'\u2B07 Export Features to KMZ':s==='run'?'\u23F3 Exporting...':s==='done'?'\u2713 Export Again':'\u21BA Try Again');
+  b.disabled = (s==='run'||s==='nofield');
+}
+function showMsg(txt, cls) {
+  var el = document.getElementById('msgBox');
+  el.className = 'bar '+(cls||'info');
+  el.innerHTML = txt;
+  el.style.display = 'block';
 }
 
-// ═══════════════════════════════════════════════════════
-// TOKEN — try multiple methods
-// ═══════════════════════════════════════════════════════
+// ── TOKEN ─────────────────────────────────────────────────────────────────────
 async function tryGetToken() {
-  // Method 1: Walk parent windows for JSAPI IdentityManager
-  var wins = [window, window.parent, window.top];
-  for (var i = 0; i < wins.length; i++) {
+  var wins = [];
+  try { wins.push(window); } catch(e){}
+  try { wins.push(window.parent); } catch(e){}
+  try { if(window.top!==window.parent) wins.push(window.top); } catch(e){}
+
+  for (var i=0;i<wins.length;i++) {
     try {
       var w = wins[i];
-      if (w.__esri && w.__esri.id && w.__esri.id.credentials) {
-        var creds = w.__esri.id.credentials;
-        for (var c = 0; c < creds.length; c++) {
-          if (creds[c] && creds[c].token) return creds[c].token;
+      // JSAPI IdentityManager
+      if (w.__esri && w.__esri.id) {
+        var creds = w.__esri.id.credentials||[];
+        for (var c=0;c<creds.length;c++) {
+          if (creds[c]&&creds[c].token) return creds[c].token;
         }
       }
-    } catch(e) {}
-  }
-
-  // Method 2: require IdentityManager from parent
-  for (var i = 0; i < wins.length; i++) {
-    try {
-      var w = wins[i];
+      // require()
       if (w.require) {
         var t = await new Promise(function(res) {
           try {
-            w.require(['esri/identity/IdentityManager'], function(IM) {
-              try {
-                var creds = IM.credentials;
-                if (creds && creds.length) res(creds[0].token || '');
-                else res('');
-              } catch(e) { res(''); }
+            w.require(['esri/identity/IdentityManager'],function(IM){
+              try { var cr=IM.credentials; res(cr&&cr.length?cr[0].token||'':''); }
+              catch(e){ res(''); }
             });
-          } catch(e) { res(''); }
-          setTimeout(function(){ res(''); }, 1500);
+          } catch(e){ res(''); }
+          setTimeout(function(){res('');},1200);
         });
         if (t) return t;
       }
-    } catch(e) {}
+    } catch(e){}
   }
 
-  // Method 3: portal/self with credentials (cookie-based)
+  // Cookie-based
   try {
-    var r = await fetch(PORTAL + '/sharing/rest/portals/self?f=json', { credentials: 'include' });
+    var r = await fetch(PORTAL+'/sharing/rest/portals/self?f=json',{credentials:'include'});
     var d = await r.json();
     if (d.id && !d.error) {
-      var tr = await fetch(PORTAL + '/sharing/rest/generateToken', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'f=json&request=gettoken&expiration=120&referer=' + encodeURIComponent(location.origin)
+      var tr = await fetch(PORTAL+'/sharing/rest/generateToken',{
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'f=json&request=gettoken&expiration=120&referer='+encodeURIComponent(location.origin)
       });
       var td = await tr.json();
       if (td.token) return td.token;
     }
-  } catch(e) {}
-
+  } catch(e){}
   return '';
 }
 
 async function doLogin() {
-  var user = document.getElementById('iUser').value.trim();
-  var pass = document.getElementById('iPass').value.trim();
-  if (!user || !pass) { bar('loginErr', 'Enter username and password', 'err'); showEl('loginErr'); return; }
-  document.getElementById('btnLogin').disabled = true;
-  document.getElementById('btnLogin').textContent = 'Logging in...';
-  hideEl('loginErr');
+  var user=document.getElementById('iUser').value.trim();
+  var pass=document.getElementById('iPass').value.trim();
+  if(!user||!pass){showLoginErr('Enter username and password');return;}
+  document.getElementById('btnLogin').disabled=true;
+  document.getElementById('btnLogin').textContent='Logging in...';
+  hide('loginErr');
   try {
-    var endpoints = [
-      PORTAL + '/sharing/rest/generateToken',
-      SERVER  + '/tokens/generateToken'
-    ];
-    var body = new URLSearchParams({ username: user, password: pass, client: 'requestip', expiration: '480', f: 'json' });
-    var found = false;
-    for (var i = 0; i < endpoints.length && !found; i++) {
-      var r = await fetch(endpoints[i], { method:'POST', credentials:'include', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() });
-      var d = await r.json();
-      if (!d.error && d.token) { token = d.token; found = true; }
+    var body=new URLSearchParams({username:user,password:pass,client:'requestip',expiration:'480',f:'json'});
+    var endpoints=[PORTAL+'/sharing/rest/generateToken',SERVER+'/tokens/generateToken'];
+    var found=false;
+    for(var i=0;i<endpoints.length&&!found;i++){
+      var r=await fetch(endpoints[i],{method:'POST',credentials:'include',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
+      var d=await r.json();
+      if(!d.error&&d.token){token=d.token;found=true;}
     }
-    if (!found) throw new Error('Invalid credentials');
+    if(!found) throw new Error('Invalid credentials');
     onTokenOk();
-  } catch(e) {
-    bar('loginErr', 'Login failed: ' + e.message, 'err');
-    showEl('loginErr');
-    document.getElementById('btnLogin').disabled = false;
-    document.getElementById('btnLogin').textContent = '\uD83D\uDD12 Login';
+  } catch(e){
+    showLoginErr('Login failed: '+e.message);
+    document.getElementById('btnLogin').disabled=false;
+    document.getElementById('btnLogin').textContent='\uD83D\uDD12 Login';
   }
 }
-
-function onTokenOk() {
-  hideEl('loginBox');
-  bar('sConn', '\u25CF Connected to Enterprise', 'ok');
-  bar('sToken', '\uD83D\uDD12 Token active', 'ok');
-  showEl('sToken');
-  document.getElementById('btnLoad').disabled = false;
+function showLoginErr(m){
+  var el=document.getElementById('loginErr');
+  el.textContent=m; el.style.display='block';
+}
+function onTokenOk(){
+  hide('loginBox');
+  bar('sConn','\u25CF Connected to Enterprise','ok');
+  bar('sToken','\uD83D\uDD12 Token active','ok');
+  show('sToken');
+  document.getElementById('btnLoad').disabled=false;
   loadFields();
   toggleAuto(true);
 }
 
-// ═══════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════
-window.addEventListener('load', async function() {
-  bar('sConn', '\u25CB Detecting session...', 'warn');
-  var t = await tryGetToken();
-  if (t) { token = t; onTokenOk(); }
-  else {
-    bar('sConn', '\u26A0 Login required', 'warn');
-    showEl('loginBox');
-  }
+window.addEventListener('load',async function(){
+  bar('sConn','\u25CB Detecting session...','warn');
+  var t=await tryGetToken();
+  if(t){token=t;onTokenOk();}
+  else{bar('sConn','\u26A0 Login required','warn');show('loginBox');}
 });
 
-// ═══════════════════════════════════════════════════════
-// FILTER SYNC — read current filter from EXB map
-// The key insight: EXB Filter widget sends an ACTION to the map widget
-// which sets layer.definitionExpression on the map's layer objects.
-// We walk the parent window's map views to find this.
-// ═══════════════════════════════════════════════════════
-function findMapLayer() {
-  var wins = [];
-  try { wins.push(window.parent); } catch(e) {}
-  try { if (window.top !== window.parent) wins.push(window.top); } catch(e) {}
+// ── FILTER SYNC ───────────────────────────────────────────────────────────────
+function getAllLayers(layerCollection) {
+  var result = [];
+  if (!layerCollection) return result;
+  var items = [];
+  if (layerCollection.items) items = layerCollection.items;
+  else if (typeof layerCollection.toArray === 'function') items = layerCollection.toArray();
+  else if (Array.isArray(layerCollection)) items = layerCollection;
 
-  for (var wi = 0; wi < wins.length; wi++) {
+  items.forEach(function(layer) {
+    if (!layer) return;
+    result.push(layer);
+    // recurse into sublayers, layers collections
+    if (layer.sublayers) result = result.concat(getAllLayers(layer.sublayers));
+    if (layer.layers) result = result.concat(getAllLayers(layer.layers));
+  });
+  return result;
+}
+
+function isMyLayer(layer) {
+  if (!layer) return false;
+  var url = (layer.url || '').toLowerCase();
+  var title = (layer.title || layer.name || '').toLowerCase();
+  // Match by URL containing service name or featureserver/1
+  return url.includes('final_gdb_bdc') ||
+         url.includes('bdc_project_analysis') ||
+         (url.includes('featureserver') && (title.includes('bdc') || title.includes('asset')));
+}
+
+function findBDCLayer() {
+  var wins = [];
+  try { wins.push(window.parent); } catch(e){}
+  try { if(window.top!==window.parent) wins.push(window.top); } catch(e){}
+
+  for (var wi=0;wi<wins.length;wi++) {
     try {
       var w = wins[wi];
 
-      // Strategy A: __jimuMapViews (EXB internal store)
+      // Method 1: __jimuMapViews
       if (w.__jimuMapViews) {
         var keys = Object.keys(w.__jimuMapViews);
-        for (var ki = 0; ki < keys.length; ki++) {
+        debug('Found '+keys.length+' jimuMapViews');
+        for (var ki=0;ki<keys.length;ki++) {
           try {
             var mv = w.__jimuMapViews[keys[ki]];
-            if (!mv || !mv.view || !mv.view.map) continue;
-            var layers = mv.view.map.allLayers || mv.view.map.layers;
-            var found = searchLayers(layers);
-            if (found) return found;
-          } catch(e) {}
+            if (!mv||!mv.view) continue;
+            var view = mv.view;
+            if (!view.map) continue;
+            var layers = getAllLayers(view.map.allLayers || view.map.layers);
+            debug('View '+ki+' has '+layers.length+' layers');
+            for (var li=0;li<layers.length;li++) {
+              var lyr = layers[li];
+              debug('  Layer: '+(lyr.title||lyr.name||'?')+' | url: '+(lyr.url||'').substring(0,60));
+              if (isMyLayer(lyr)) {
+                debug('  >>> MATCH FOUND!');
+                return lyr;
+              }
+            }
+          } catch(e){ debug('View err: '+e.message); }
         }
       }
 
-      // Strategy B: walk all DOM elements with __view__
+      // Method 2: scan DOM for __view__
       if (w.document) {
-        var candidates = w.document.querySelectorAll('*');
-        for (var ci = 0; ci < candidates.length; ci++) {
+        var all = w.document.querySelectorAll('*');
+        for (var di=0;di<all.length;di++) {
           try {
-            var el = candidates[ci];
-            var view = el.__view__ || el._view || el.view;
-            if (view && view.map) {
-              var layers = view.map.allLayers || view.map.layers;
-              var found = searchLayers(layers);
-              if (found) return found;
+            var view = all[di].__view__ || all[di]._view;
+            if (!view||!view.map) continue;
+            var layers = getAllLayers(view.map.allLayers || view.map.layers);
+            for (var li=0;li<layers.length;li++) {
+              if (isMyLayer(layers[li])) return layers[li];
             }
-          } catch(e) {}
+          } catch(e){}
         }
       }
 
-      // Strategy C: esri MapView instances on window
+      // Method 3: __esri views
       if (w.__esri && w.__esri.views) {
-        var vkeys = Object.keys(w.__esri.views);
-        for (var vk = 0; vk < vkeys.length; vk++) {
+        Object.values(w.__esri.views).forEach(function(view){
           try {
-            var view = w.__esri.views[vkeys[vk]];
-            if (view && view.map) {
-              var layers = view.map.allLayers || view.map.layers;
-              var found = searchLayers(layers);
-              if (found) return found;
-            }
-          } catch(e) {}
-        }
+            if (!view||!view.map) return;
+            var layers = getAllLayers(view.map.allLayers||view.map.layers);
+            layers.forEach(function(l){ if(isMyLayer(l)) return l; });
+          } catch(e){}
+        });
       }
 
-    } catch(e) {}
-  }
-  return null;
-}
-
-function searchLayers(layers) {
-  if (!layers) return null;
-  var items = layers.items || (layers.toArray ? layers.toArray() : []);
-  for (var i = 0; i < items.length; i++) {
-    try {
-      var layer = items[i];
-      if (!layer) continue;
-      var url = (layer.url || '').toLowerCase();
-      var title = (layer.title || layer.name || '').toLowerCase();
-      var isMatch = LAYER_KEYWORDS.some(function(kw) {
-        return url.includes(kw) || title.includes(kw);
-      });
-      if (isMatch) return layer;
-      // Also check sublayers
-      if (layer.sublayers) {
-        var sub = searchLayers(layer.sublayers);
-        if (sub) return sub;
-      }
-    } catch(e) {}
+    } catch(e){ debug('Win err: '+e.message); }
   }
   return null;
 }
 
 function syncFilter() {
-  // Update layer reference
-  if (!mapLayerRef) mapLayerRef = findMapLayer();
+  // Try cached first
+  var layer = cachedLayer || findBDCLayer();
 
-  var layer = mapLayerRef || findMapLayer();
   if (layer) {
-    mapLayerRef = layer; // cache it
+    cachedLayer = layer;
     var def = layer.definitionExpression;
-    if (!def || def === '' || def === '1=1') {
+    if (!def || def.trim()==='' || def==='1=1') {
       curWhere = '1=1';
-      bar('filterBar', '\u25CB Map connected \u2014 no filter applied (all features)', 'warn');
-      hideEl('filterPreview');
+      bar('filterBar','\u25CB Map connected \u2014 no filter (all features exported)','warn');
+      hide('filterSql');
     } else {
       curWhere = def;
-      bar('filterBar', '\u25CF Filter detected from map!', 'ok');
-      var prev = document.getElementById('filterPreview');
-      prev.textContent = def;
-      showEl('filterPreview');
+      bar('filterBar','\u25CF Filter active \u2014 only filtered features will export','ok');
+      var sqlEl = document.getElementById('filterSql');
+      sqlEl.textContent = def;
+      show('filterSql');
     }
-    // Get count
-    getCount();
+    // Update export button label with count
+    updateExportBtn();
   } else {
-    bar('filterBar', '\u26A0 Could not find map layer \u2014 will export with current filter', 'warn');
-    hideEl('filterPreview');
+    bar('filterBar','\u26A0 Map layer not found \u2014 exporting ALL features','warn');
+    curWhere = '1=1';
   }
 }
 
-async function getCount() {
-  if (!token) return;
+async function updateExportBtn() {
+  if (!token || !allFields.length) return;
   try {
     var url = document.getElementById('layerUrl').value.trim();
-    var p = new URLSearchParams({ where: curWhere, returnCountOnly: 'true', f: 'json', token: token });
-    var r = await fetch(url + '/query', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: p.toString() });
+    var p = new URLSearchParams({where:curWhere,returnCountOnly:'true',f:'json',token:token});
+    var r = await fetch(url+'/query',{method:'POST',credentials:'include',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()});
     var d = await r.json();
-    if (!d.error && d.count !== undefined) {
-      curCount = d.count;
-      if (allFields.length > 0) setExpBtn('idle');
+    if (!d.error && d.count!==undefined) {
+      setExpBtn('idle','\u2B07 Export '+d.count+' Features to KMZ');
     }
-  } catch(e) {}
+  } catch(e){}
 }
 
 function toggleAuto(on) {
-  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-  if (on) autoTimer = setInterval(syncFilter, 2000);
+  if (autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  if (on) autoTimer=setInterval(syncFilter,2000);
 }
 
-// ═══════════════════════════════════════════════════════
-// LOAD FIELDS
-// ═══════════════════════════════════════════════════════
+// ── LOAD FIELDS ───────────────────────────────────────────────────────────────
 async function loadFields() {
-  var url = document.getElementById('layerUrl').value.trim();
-  if (!url || !token) return;
-  document.getElementById('btnLoad').textContent = 'Loading...';
-  document.getElementById('btnLoad').disabled = true;
+  var url=document.getElementById('layerUrl').value.trim();
+  if(!url||!token) return;
+  document.getElementById('btnLoad').textContent='Loading...';
+  document.getElementById('btnLoad').disabled=true;
   try {
-    var r = await fetch(url + '?f=json&token=' + encodeURIComponent(token), { credentials: 'include' });
-    var d = await r.json();
-    if (d.error) throw new Error(d.error.message);
+    var r=await fetch(url+'?f=json&token='+encodeURIComponent(token),{credentials:'include'});
+    var d=await r.json();
+    if(d.error) throw new Error(d.error.message);
 
-    var skip = ['shape','shape_length','shape_area','globalid','creationdate','editdate','creator','editor','objectid'];
-    allFields = (d.fields || []).map(function(f){ return f.name; })
-      .filter(function(n){ return !skip.includes(n.toLowerCase()); });
+    var skip=['shape','shape_length','shape_area','globalid','creationdate','editdate','creator','editor'];
+    allFields=(d.fields||[]).map(function(f){return f.name;})
+      .filter(function(n){return skip.indexOf(n.toLowerCase())===-1&&n.toLowerCase()!=='objectid';});
 
     // Auto-detect title field
-    titleField = '';
-    var titleCandidates = ['assets_id','asset_id','Assets_Id','Asset_Id','name','Name','title','Title'];
-    for (var tc = 0; tc < titleCandidates.length; tc++) {
-      if (allFields.indexOf(titleCandidates[tc]) > -1) { titleField = titleCandidates[tc]; break; }
+    var candidates=['assets_id','asset_id','name','title'];
+    titleField='';
+    for(var i=0;i<candidates.length;i++){
+      var match=allFields.filter(function(f){return f.toLowerCase()===candidates[i];});
+      if(match.length){titleField=match[0];break;}
     }
-    if (!titleField && allFields.length > 0) titleField = allFields[0];
+    if(!titleField&&allFields.length) titleField=allFields[0];
 
-    selFields = allFields.slice();
+    selFields=allFields.slice();
     renderFields();
-    showEl('fieldSec');
-    setExpBtn('idle');
-    showMsg('\u2713 ' + allFields.length + ' fields loaded. Title field: ' + titleField, 'ok');
-    setTimeout(function(){ hideEl('msgBox'); }, 3000);
+    show('fieldSec');
+    setExpBtn('idle','\u2B07 Export Features to KMZ');
+    showMsg('\u2713 '+allFields.length+' fields loaded. Title: '+titleField,'ok');
+    setTimeout(function(){hide('msgBox');},3000);
     syncFilter();
-  } catch(e) {
-    showMsg('Could not load fields: ' + e.message, 'err');
-    if (e.message.toLowerCase().includes('token')) {
-      token = '';
-      showEl('loginBox');
-      bar('sConn', '\u26A0 Session expired \u2014 please login again', 'warn');
+  } catch(e){
+    showMsg('Load failed: '+e.message,'err');
+    if(e.message.toLowerCase().includes('token')){
+      token=''; show('loginBox');
+      bar('sConn','\u26A0 Session expired','warn');
     }
   }
-  document.getElementById('btnLoad').textContent = '\u21BB Load Fields from Layer';
-  document.getElementById('btnLoad').disabled = false;
+  document.getElementById('btnLoad').textContent='\u21BB Load Fields from Layer';
+  document.getElementById('btnLoad').disabled=false;
 }
 
-function renderFields() {
-  var c = document.getElementById('fieldItems');
-  c.innerHTML = '';
-  allFields.forEach(function(f) {
-    var on = selFields.indexOf(f) > -1;
-    var d = document.createElement('div');
-    d.className = 'fi' + (on ? ' on' : '');
-    d.innerHTML = '<input type="checkbox"' + (on ? ' checked' : '') + '><span>' + f + '</span>';
-    d.querySelector('input').addEventListener('change', function(e) {
-      if (e.target.checked) { if (selFields.indexOf(f) === -1) selFields.push(f); d.classList.add('on'); }
-      else { selFields = selFields.filter(function(x){ return x !== f; }); d.classList.remove('on'); }
-      updateSelCount();
+function renderFields(){
+  var c=document.getElementById('fieldItems');
+  c.innerHTML='';
+  allFields.forEach(function(f){
+    var on=selFields.indexOf(f)>-1;
+    var d=document.createElement('div');
+    d.className='fi'+(on?' on':'');
+    d.innerHTML='<input type="checkbox"'+(on?' checked':'')+'><span>'+f+'</span>';
+    d.querySelector('input').addEventListener('change',function(e){
+      if(e.target.checked){if(selFields.indexOf(f)===-1)selFields.push(f);d.classList.add('on');}
+      else{selFields=selFields.filter(function(x){return x!==f;});d.classList.remove('on');}
+      document.getElementById('selBadge').textContent=selFields.length;
     });
     c.appendChild(d);
   });
-  updateSelCount();
+  document.getElementById('selBadge').textContent=selFields.length;
 }
-function selAll()  { selFields = allFields.slice(); renderFields(); }
-function selNone() { selFields = []; renderFields(); }
+function selAll(){selFields=allFields.slice();renderFields();}
+function selNone(){selFields=[];renderFields();}
 
-// ═══════════════════════════════════════════════════════
-// BUILD KML
-// ═══════════════════════════════════════════════════════
-function esc(s) {
-  if (s == null) return '';
+// ── BUILD KML ─────────────────────────────────────────────────────────────────
+function esc(s){
+  if(s==null)return'';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function buildKml(feats, fields, name) {
-  var pms = feats.map(function(f) {
-    var a = f.attributes || {};
-    var g = f.geometry;
-
-    // Title from auto-detected field
-    var title = esc(a[titleField] || Object.values(a)[0] || 'Asset');
-
-    // Popup table with ALL selected fields
-    var rows = fields.map(function(k) {
-      var v = a[k];
-      if (v == null || v === '') return '';
-      return '<tr>' +
-        '<td style="padding:3px 8px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold;white-space:nowrap">' + esc(k) + '</td>' +
-        '<td style="padding:3px 8px;border:1px solid #ccc">' + esc(v) + '</td>' +
-        '</tr>';
+function buildKml(feats,fields,name){
+  var pms=feats.map(function(f){
+    var a=f.attributes||{};
+    var g=f.geometry;
+    var title=esc(a[titleField]||Object.values(a)[0]||'Asset');
+    var rows=fields.map(function(k){
+      var v=a[k];
+      if(v==null||v==='')return'';
+      return'<tr><td style="padding:3px 8px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold;white-space:nowrap">'+esc(k)+'</td><td style="padding:3px 8px;border:1px solid #ccc">'+esc(v)+'</td></tr>';
     }).filter(Boolean).join('');
-
-    var desc = '<![CDATA[<table style="border-collapse:collapse;font-size:12px;font-family:Arial">' + rows + '</table>]]>';
-
-    // Geometry
-    var geo = '';
-    if (g) {
-      if (g.rings) {
-        var coords = g.rings[0].map(function(p){ return p[0]+','+p[1]+',0'; }).join(' ');
-        geo = '<Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>' + coords + '</coordinates></LinearRing></outerBoundaryIs></Polygon>';
-      } else if (g.paths) {
-        var coords = g.paths[0].map(function(p){ return p[0]+','+p[1]+',0'; }).join(' ');
-        geo = '<LineString><tessellate>1</tessellate><coordinates>' + coords + '</coordinates></LineString>';
-      } else if (g.x != null) {
-        geo = '<Point><coordinates>' + g.x + ',' + g.y + ',0</coordinates></Point>';
+    var desc='<![CDATA[<table style="border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif">'+rows+'</table>]]>';
+    var geo='';
+    if(g){
+      if(g.rings){
+        var coords=g.rings[0].map(function(p){return p[0]+','+p[1]+',0';}).join(' ');
+        geo='<Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>'+coords+'</coordinates></LinearRing></outerBoundaryIs></Polygon>';
+      }else if(g.paths){
+        var coords=g.paths[0].map(function(p){return p[0]+','+p[1]+',0';}).join(' ');
+        geo='<LineString><tessellate>1</tessellate><coordinates>'+coords+'</coordinates></LineString>';
+      }else if(g.x!=null){
+        geo='<Point><coordinates>'+g.x+','+g.y+',0</coordinates></Point>';
       }
     }
-
-    return '<Placemark><name>' + title + '</name><description>' + desc + '</description><styleUrl>#s</styleUrl>' + geo + '</Placemark>';
+    return'<Placemark><name>'+title+'</name><description>'+desc+'</description><styleUrl>#s</styleUrl>'+geo+'</Placemark>';
   });
-
-  return '<?xml version="1.0" encoding="UTF-8"?>' +
-    '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-    '<Document><name>' + esc(name) + '</name>' +
-    '<Style id="s">' +
-      '<PolyStyle><color>7f1a3a2a</color><outline>1</outline></PolyStyle>' +
-      '<LineStyle><color>ff1a3a2a</color><width>2</width></LineStyle>' +
-      '<LabelStyle><scale>1.2</scale></LabelStyle>' +
-    '</Style>' +
-    pms.join('') +
-    '</Document></kml>';
+  return'<?xml version="1.0" encoding="UTF-8"?>'+
+    '<kml xmlns="http://www.opengis.net/kml/2.2">'+
+    '<Document><name>'+esc(name)+'</name>'+
+    '<Style id="s"><PolyStyle><color>7f1a3a2a</color><outline>1</outline></PolyStyle>'+
+    '<LineStyle><color>ff1a3a2a</color><width>2</width></LineStyle>'+
+    '<LabelStyle><scale>1.2</scale></LabelStyle></Style>'+
+    pms.join('')+'</Document></kml>';
 }
 
-// ═══════════════════════════════════════════════════════
-// QUERY — paginated, respects current WHERE
-// ═══════════════════════════════════════════════════════
-async function queryAll(url, where, fields) {
-  var all = [], offset = 0, pageSize = 1000, more = true;
-  while (more) {
-    var p = new URLSearchParams({
-      where: where || '1=1',
-      outFields: fields.join(','),
-      returnGeometry: 'true',
-      outSR: '4326',
-      f: 'json',
-      resultOffset: String(offset),
-      resultRecordCount: String(pageSize),
-      token: token
+// ── QUERY ─────────────────────────────────────────────────────────────────────
+async function queryAll(url,where,fields){
+  var all=[],offset=0,pageSize=1000,more=true;
+  while(more){
+    var p=new URLSearchParams({
+      where:where||'1=1',
+      outFields:fields.join(','),
+      returnGeometry:'true',
+      outSR:'4326',
+      f:'json',
+      resultOffset:String(offset),
+      resultRecordCount:String(pageSize),
+      token:token
     });
-    var r = await fetch(url + '/query', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: p.toString()
+    var r=await fetch(url+'/query',{
+      method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:p.toString()
     });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var d = await r.json();
-    if (d.error) throw new Error(d.error.message);
-    var fs = d.features || [];
-    all = all.concat(fs);
-    offset += fs.length;
-    more = d.exceededTransferLimit === true && fs.length > 0;
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var d=await r.json();
+    if(d.error) throw new Error(d.error.message);
+    var fs=d.features||[];
+    all=all.concat(fs);
+    offset+=fs.length;
+    more=d.exceededTransferLimit===true&&fs.length>0;
   }
   return all;
 }
 
-// ═══════════════════════════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════════════════════════
-async function doExport() {
-  if (!selFields.length) { showMsg('Select at least one popup field.', 'err'); return; }
-  if (!token) { showMsg('Not logged in.', 'err'); return; }
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+async function doExport(){
+  if(!selFields.length){showMsg('Select at least one field.','err');return;}
+  if(!token){showMsg('Not logged in.','err');return;}
 
-  // Sync filter one more time right before export
+  // Sync filter right before export
   syncFilter();
 
   setExpBtn('run');
   showProg(true);
-  prog(10);
+  prog(5);
+  hide('msgBox');
 
-  try {
-    var url  = document.getElementById('layerUrl').value.trim();
-    var name = document.getElementById('outName').value.trim() || 'BDC_Export';
+  try{
+    var url=document.getElementById('layerUrl').value.trim();
+    var name=document.getElementById('outName').value.trim()||'BDC_Export';
 
-    showMsg('Querying features with filter: ' + (curWhere === '1=1' ? 'all features' : curWhere.substring(0,60) + '...'), 'info');
-    prog(20);
+    showMsg('Step 1/4: Querying features (filter: '+(curWhere==='1=1'?'all':curWhere.substring(0,50)+'...')+')','info');
+    prog(15);
 
-    // Build query fields — use all selected + title field
-    var qFields = selFields.slice();
-    if (qFields.indexOf(titleField) === -1 && titleField) qFields.unshift(titleField);
+    // Build query fields
+    var qFields=selFields.slice();
+    if(titleField&&qFields.indexOf(titleField)===-1) qFields.unshift(titleField);
 
-    var feats = await queryAll(url, curWhere, qFields);
+    var feats=await queryAll(url,curWhere,qFields);
 
-    if (!feats.length) {
+    if(!feats.length){
       setExpBtn('err');
       showProg(false);
-      showMsg('No features returned for current filter. Try a different filter.', 'err');
+      showMsg('No features found with current filter.','err');
       return;
     }
 
-    prog(60);
-    showMsg('Building KML for ' + feats.length + ' features...', 'info');
+    prog(50);
+    showMsg('Step 2/4: Building KML for '+feats.length+' features...','info');
+    var kml=buildKml(feats,selFields,name);
 
-    var kml = buildKml(feats, selFields, name);
+    prog(70);
+    showMsg('Step 3/4: Creating KMZ package...','info');
 
-    prog(80);
-    showMsg('Packaging KMZ...', 'info');
+    // Build KMZ using a Blob with zip structure
+    // We use JSZip if available, otherwise save as KML
+    var JSZip=window.JSZip;
+    var blob, filename;
 
-    var zip = new JSZip();
-    zip.file('doc.kml', kml);
-    var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    if(JSZip){
+      var zip=new JSZip();
+      zip.file('doc.kml',kml);
+      blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+      filename=name+'.kmz';
+    } else {
+      // Fallback: save as KML if JSZip not loaded
+      blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
+      filename=name+'.kml';
+    }
+
+    prog(90);
+    showMsg('Step 4/4: Downloading...','info');
+
+    // Force download
+    var url2=URL.createObjectURL(blob);
+    var link=document.createElement('a');
+    link.setAttribute('href',url2);
+    link.setAttribute('download',filename);
+    link.style.display='none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){URL.revokeObjectURL(url2);},5000);
 
     prog(100);
-    var burl = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = burl;
-    a.download = name + '.kmz';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(burl);
+    setExpBtn('done','\u2713 Export Again');
+    showMsg('\u2713 SUCCESS! '+feats.length+' features saved as <strong>'+filename+'</strong><br>Check your Downloads folder!','ok');
 
-    setExpBtn('done');
-    showMsg('\u2713 ' + feats.length + ' features exported as ' + name + '.kmz \u2014 check your Downloads folder', 'ok');
-
-  } catch(e) {
+  }catch(e){
     setExpBtn('err');
     showProg(false);
-    showMsg('Export failed: ' + e.message, 'err');
+    showMsg('Export failed: '+e.message,'err');
   }
 }
-
-function showMsg(text, cls) {
-  var el = document.getElementById('msgBox');
-  el.className = 'bar ' + cls;
-  el.innerHTML = text;
-  el.style.display = 'block';
-}
 </script>
+
+<!-- Load JSZip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" 
+  onerror="console.warn('JSZip failed to load - will export as KML instead')">
+</script>
+
 </body>
 </html>
