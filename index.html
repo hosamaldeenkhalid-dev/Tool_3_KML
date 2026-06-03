@@ -3,128 +3,108 @@
 <head>
     <meta charset="utf-8">
     <title>ArcGIS Export Tool</title>
-    <!-- We need JSZip to create a KMZ (which is just a zipped KML) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background-color: #f8f9fa; }
-        .container { background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #1a3a2a; margin-top: 0; font-size: 18px; }
-        .status-box { padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; }
-        .waiting { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .btn { background: #1a3a2a; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        #filterLog { font-family: monospace; font-size: 11px; background: #eee; padding: 5px; margin-top: 10px; word-break: break-all; max-height: 60px; overflow-y: auto; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; background: white; }
+        .box { border: 1px solid #ccc; border-radius: 5px; padding: 15px; }
+        .status { padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; font-weight: bold; }
+        .err { background: #fdecea; color: #922b21; border: 1px solid #f5c6cb; }
+        .ok { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+        .btn { background: #1a3a2a; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn:disabled { background: #999; cursor: not-allowed; }
+        #log { font-family: monospace; font-size: 10px; background: #f4f4f4; padding: 5px; margin-top: 10px; border: 1px inset #ccc; height: 40px; overflow: auto; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Export Filtered Assets</h2>
+<div class="box">
+    <div id="statusBox" class="status err">Checking connection to Map...</div>
     
-    <div id="status" class="status-box waiting">Searching for Map View...</div>
-    
-    <div style="font-size: 12px; font-weight: bold;">Applied Filter:</div>
-    <div id="filterLog">1=1 (All Data)</div>
+    <div style="font-size: 11px; margin-bottom: 5px;">Detected Filter:</div>
+    <div id="log">1=1</div>
 
-    <p style="font-size: 11px; color: #666;">This tool will export only the assets currently visible on your map.</p>
+    <p style="font-size: 11px; color: #555;">Tool will export assets based on your map filters.</p>
     
-    <button id="exportBtn" class="btn" disabled onclick="startExport()">Download KMZ</button>
-    <div id="msg" style="margin-top:10px; font-size:12px; color: #2c3e50;"></div>
+    <button id="btn" class="btn" disabled onclick="doExport()">DOWNLOAD KMZ</button>
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    // Change this to your specific layer URL
+    // YOUR CONFIG
     const LAYER_URL = "https://arcgis.balad.com.sa/server/rest/services/Hosted/Final_GDB_BDC_Project_Analysis/FeatureServer/1";
-    
-    let currentFilter = "1=1";
-    let mapConnected = false;
+    let curFilter = "1=1";
 
-    // --- 1. FIND THE MAP AND SYNC FILTER ---
-    function syncWithExperienceBuilder() {
+    function checkMap() {
         try {
-            // We look at the parent window (Experience Builder)
-            const parentWin = window.parent;
+            // This line fails if Origin is different
+            const parentWin = window.parent; 
             
-            // Experience Builder stores map info in __jimuMapViews
             if (parentWin && parentWin.__jimuMapViews) {
-                const mapViews = Object.values(parentWin.__jimuMapViews);
-                if (mapViews.length > 0) {
-                    const view = mapViews[0].view; // Get the first map found
-                    
-                    // Search for your specific layer inside the map
-                    const layer = view.map.allLayers.find(l => l.url && l.url.includes("Final_GDB_BDC_Project_Analysis"));
+                const mvs = Object.values(parentWin.__jimuMapViews);
+                if (mvs.length > 0) {
+                    const view = mvs[0].view;
+                    const layer = view.map.allLayers.find(l => l.url && l.url.toLowerCase().includes("final_gdb_bdc"));
                     
                     if (layer) {
-                        mapConnected = true;
-                        currentFilter = layer.definitionExpression || "1=1";
-                        
-                        document.getElementById('status').innerText = "✓ Connected to Map";
-                        document.getElementById('status').className = "status-box connected";
-                        document.getElementById('filterLog').innerText = currentFilter;
-                        document.getElementById('exportBtn').disabled = false;
+                        curFilter = layer.definitionExpression || "1=1";
+                        document.getElementById('statusBox').innerText = "✓ Connected to Map";
+                        document.getElementById('statusBox').className = "status ok";
+                        document.getElementById('log').innerText = curFilter;
+                        document.getElementById('btn').disabled = false;
                     }
                 }
             }
-        } catch (err) {
-            console.error("Connection error: ", err);
-            document.getElementById('status').innerText = "⚠ Security Block: Same-Origin Required";
+        } catch (e) {
+            document.getElementById('statusBox').innerText = "⚠ Security Block: Move file to balad.com.sa server";
+            document.getElementById('statusBox').className = "status err";
         }
     }
 
-    // Check for map updates every 2 seconds
-    setInterval(syncWithExperienceBuilder, 2000);
+    setInterval(checkMap, 2500);
 
-    // --- 2. EXPORT LOGIC ---
-    async function startExport() {
-        const msg = document.getElementById('msg');
-        msg.innerText = "Querying Server...";
-        
+    async function doExport() {
+        const btn = document.getElementById('btn');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
         try {
-            // Query the server using the current filter
-            const queryUrl = `${LAYER_URL}/query?where=${encodeURIComponent(currentFilter)}&outFields=*&f=json&returnGeometry=true&outSR=4326`;
-            const response = await fetch(queryUrl);
-            const data = await response.json();
+            const q = `${LAYER_URL}/query?where=${encodeURIComponent(curFilter)}&outFields=*&f=json&returnGeometry=true&outSR=4326`;
+            const res = await fetch(q);
+            const data = await res.json();
 
             if (!data.features || data.features.length === 0) {
-                msg.innerText = "No data found for this filter.";
+                alert("No features found with current filter!");
+                btn.innerText = "DOWNLOAD KMZ";
+                btn.disabled = false;
                 return;
             }
 
-            msg.innerText = `Found ${data.features.length} features. Generating KML...`;
-
-            // Build KML String
-            let kml = `<?xml version="1.0" encoding="UTF-8"?>
-            <kml xmlns="http://www.opengis.net/kml/2.2">
-            <Document><name>Exported Assets</name>`;
-            
+            // Build Simple KML
+            let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Export</name>`;
             data.features.forEach(f => {
-                const name = f.attributes.assets_id || "Asset";
+                let name = f.attributes.assets_id || "Asset";
                 kml += `<Placemark><name>${name}</name>`;
-                // Note: Real geometry logic (Polygons/Points) would go here
+                // Geometry logic can be added here
                 kml += `</Placemark>`;
             });
-            
             kml += `</Document></kml>`;
 
-            // Create Zip (KMZ)
             const zip = new JSZip();
             zip.file("doc.kml", kml);
             const blob = await zip.generateAsync({type:"blob"});
 
-            // TRIGGER DOWNLOAD
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "Map_Export.kmz";
+            a.download = "Exported_Data.kmz";
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
             
-            msg.innerText = "✓ Download Complete!";
-        } catch (e) {
-            msg.innerText = "Error: " + e.message;
+            btn.innerText = "✓ Done!";
+            setTimeout(() => { btn.innerText = "DOWNLOAD KMZ"; btn.disabled = false; }, 3000);
+        } catch (err) {
+            alert("Export Error: " + err.message);
+            btn.innerText = "DOWNLOAD KMZ";
+            btn.disabled = false;
         }
     }
 </script>
