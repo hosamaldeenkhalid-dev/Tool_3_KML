@@ -2,109 +2,130 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>ArcGIS Export Tool</title>
+    <title>BDC Export Tool</title>
+    <!-- JSZip allows us to create the KMZ file -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; background: white; }
-        .box { border: 1px solid #ccc; border-radius: 5px; padding: 15px; }
-        .status { padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; font-weight: bold; }
-        .err { background: #fdecea; color: #922b21; border: 1px solid #f5c6cb; }
-        .ok { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
-        .btn { background: #1a3a2a; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
-        .btn:disabled { background: #999; cursor: not-allowed; }
-        #log { font-family: monospace; font-size: 10px; background: #f4f4f4; padding: 5px; margin-top: 10px; border: 1px inset #ccc; height: 40px; overflow: auto; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 10px; background: white; }
+        .container { border: 2px solid #1a3a2a; border-radius: 8px; padding: 15px; }
+        .header { color: #1a3a2a; font-weight: bold; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .label { font-size: 12px; color: #444; font-weight: bold; margin-bottom: 5px; display: block; }
+        input { width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: monospace; }
+        .btn { background: #1a3a2a; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn:hover { background: #24503c; }
+        .btn:disabled { background: #999; }
+        #status { font-size: 11px; margin-top: 10px; line-height: 1.4; }
+        .info { color: #1a4f8a; background: #f0f4ff; padding: 5px; border-radius: 3px; border: 1px solid #c3d3f7; margin-bottom: 10px; font-size: 11px; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <div id="statusBox" class="status err">Checking connection to Map...</div>
+<div class="container">
+    <div class="header">KMZ Export Tool</div>
     
-    <div style="font-size: 11px; margin-bottom: 5px;">Detected Filter:</div>
-    <div id="log">1=1</div>
+    <div class="info">
+        <b>How to use:</b><br>
+        1. Apply your filters on the map.<br>
+        2. If "Auto-Sync" is blocked, type your filter below.<br>
+        3. Use <b>1=1</b> to export all assets.
+    </div>
 
-    <p style="font-size: 11px; color: #555;">Tool will export assets based on your map filters.</p>
+    <label class="label">Current SQL Filter:</label>
+    <input type="text" id="sqlFilter" value="1=1" placeholder="e.g. status = 'Active'">
+
+    <button id="expBtn" class="btn" onclick="runExport()">DOWNLOAD KMZ</button>
     
-    <button id="btn" class="btn" disabled onclick="doExport()">DOWNLOAD KMZ</button>
+    <div id="status"></div>
 </div>
 
 <script>
-    // YOUR CONFIG
+    // --- YOUR BALAD CONFIGURATION ---
     const LAYER_URL = "https://arcgis.balad.com.sa/server/rest/services/Hosted/Final_GDB_BDC_Project_Analysis/FeatureServer/1";
-    let curFilter = "1=1";
 
-    function checkMap() {
+    // 1. TRY TO SYNC (Might be blocked, but we try anyway)
+    function trySync() {
         try {
-            // This line fails if Origin is different
-            const parentWin = window.parent; 
-            
+            const parentWin = window.parent;
             if (parentWin && parentWin.__jimuMapViews) {
-                const mvs = Object.values(parentWin.__jimuMapViews);
-                if (mvs.length > 0) {
-                    const view = mvs[0].view;
-                    const layer = view.map.allLayers.find(l => l.url && l.url.toLowerCase().includes("final_gdb_bdc"));
-                    
-                    if (layer) {
-                        curFilter = layer.definitionExpression || "1=1";
-                        document.getElementById('statusBox').innerText = "✓ Connected to Map";
-                        document.getElementById('statusBox').className = "status ok";
-                        document.getElementById('log').innerText = curFilter;
-                        document.getElementById('btn').disabled = false;
+                const views = Object.values(parentWin.__jimuMapViews);
+                if (views.length > 0) {
+                    const layer = views[0].view.map.allLayers.find(l => l.url && l.url.includes("Final_GDB_BDC"));
+                    if (layer && layer.definitionExpression) {
+                        document.getElementById('sqlFilter').value = layer.definitionExpression;
                     }
                 }
             }
         } catch (e) {
-            document.getElementById('statusBox').innerText = "⚠ Security Block: Move file to balad.com.sa server";
-            document.getElementById('statusBox').className = "status err";
+            // Silently fail - user will use manual input
         }
     }
+    setInterval(trySync, 3000);
 
-    setInterval(checkMap, 2500);
+    // 2. EXPORT LOGIC
+    async function runExport() {
+        const btn = document.getElementById('expBtn');
+        const status = document.getElementById('status');
+        const filter = document.getElementById('sqlFilter').value || "1=1";
 
-    async function doExport() {
-        const btn = document.getElementById('btn');
-        btn.innerText = "Processing...";
         btn.disabled = true;
+        btn.innerText = "Connecting...";
+        status.innerHTML = "Querying ArcGIS Server...";
 
         try {
-            const q = `${LAYER_URL}/query?where=${encodeURIComponent(curFilter)}&outFields=*&f=json&returnGeometry=true&outSR=4326`;
-            const res = await fetch(q);
-            const data = await res.json();
+            // Get data from server
+            const queryUrl = `${LAYER_URL}/query?where=${encodeURIComponent(filter)}&outFields=*&f=json&returnGeometry=true&outSR=4326`;
+            const response = await fetch(queryUrl);
+            const data = await response.json();
 
+            if (data.error) throw new Error(data.error.message);
             if (!data.features || data.features.length === 0) {
-                alert("No features found with current filter!");
-                btn.innerText = "DOWNLOAD KMZ";
+                status.innerHTML = "<b style='color:red;'>No assets found! Try changing the filter.</b>";
                 btn.disabled = false;
+                btn.innerText = "DOWNLOAD KMZ";
                 return;
             }
 
-            // Build Simple KML
-            let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Export</name>`;
+            status.innerHTML = `Found ${data.features.length} assets. Creating KMZ...`;
+
+            // Create KML structure
+            let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>BDC Export</name>`;
+            
             data.features.forEach(f => {
-                let name = f.attributes.assets_id || "Asset";
+                const attr = f.attributes;
+                const name = attr.assets_id || attr.OBJECTID || "Asset";
+                
+                // Basic Placemark
                 kml += `<Placemark><name>${name}</name>`;
-                // Geometry logic can be added here
+                kml += `<description><![CDATA[ID: ${name}]]></description>`;
+                
+                // Add Geometry (Supports Points)
+                if (f.geometry && f.geometry.x) {
+                    kml += `<Point><coordinates>${f.geometry.x},${f.geometry.y},0</coordinates></Point>`;
+                }
                 kml += `</Placemark>`;
             });
             kml += `</Document></kml>`;
 
+            // Zip into KMZ
             const zip = new JSZip();
             zip.file("doc.kml", kml);
-            const blob = await zip.generateAsync({type:"blob"});
+            const content = await zip.generateAsync({type:"blob"});
 
-            const url = window.URL.createObjectURL(blob);
+            // Trigger Download
+            const url = window.URL.createObjectURL(content);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "Exported_Data.kmz";
+            a.download = "BDC_Export.kmz";
             document.body.appendChild(a);
             a.click();
-            
-            btn.innerText = "✓ Done!";
-            setTimeout(() => { btn.innerText = "DOWNLOAD KMZ"; btn.disabled = false; }, 3000);
+            document.body.removeChild(a);
+
+            status.innerHTML = "<b style='color:green;'>✓ Export Successful! Check your downloads.</b>";
         } catch (err) {
-            alert("Export Error: " + err.message);
-            btn.innerText = "DOWNLOAD KMZ";
+            status.innerHTML = "<b style='color:red;'>Error: " + err.message + "</b>";
+        } finally {
             btn.disabled = false;
+            btn.innerText = "DOWNLOAD KMZ";
         }
     }
 </script>
