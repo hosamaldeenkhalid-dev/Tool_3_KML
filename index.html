@@ -1,160 +1,527 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; background: white; }
-        .container { border: 2px solid #1a3a2a; border-radius: 8px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { color: #1a3a2a; font-weight: bold; font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid #eee; }
-        .login-box { background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 10px; }
-        input { width: 100%; padding: 6px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 3px; box-sizing: border-box; font-size: 12px; }
-        .btn { background: #1a3a2a; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-login { background: #2c3e50; margin-bottom: 5px; }
-        #status { font-size: 11px; margin-top: 8px; font-weight: bold; }
-        .hidden { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export to KMZ</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Segoe UI',Arial,sans-serif; font-size:13px; background:#fff; color:#333; }
+.hdr { background:#1a3a2a; color:#fff; padding:10px 14px; font-size:14px; font-weight:700; }
+.body { padding:12px 14px; }
+.bar { font-size:11px; padding:6px 9px; border-radius:3px; margin-bottom:8px; line-height:1.4; }
+.ok   { background:#eafaf1; color:#1e8449; border:1px solid #a9dfbf; }
+.warn { background:#fff8e1; color:#b7770d; border:1px solid #ffe082; }
+.err  { background:#fdecea; color:#922b21; border:1px solid #f5c6cb; }
+.info { background:#f0f4ff; color:#2471a3; border:1px solid #c3d3f7; }
+.sec  { font-size:11px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:.5px; margin:10px 0 4px; }
+label.lbl { display:block; font-weight:600; margin-bottom:3px; color:#444; font-size:12px; }
+input[type=text],input[type=password],textarea,select {
+  width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:3px;
+  font-size:12px; margin-bottom:8px; color:#222; font-family:inherit;
+}
+textarea { resize:vertical; font-family:monospace; font-size:11px; }
+.btn { width:100%; padding:8px; margin-bottom:8px; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; border:1px solid #bdd4f0; background:#eaf3ff; color:#1a4f8a; }
+.btn:hover:not(:disabled) { background:#d4e9ff; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.btn-exp { width:100%; padding:11px; background:#1a3a2a; color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:8px; }
+.btn-exp:hover:not(:disabled) { background:#24503c; }
+.btn-exp:disabled { background:#aaa; cursor:not-allowed; }
+.btn-exp.done { background:#1e8449; }
+.btn-exp.errb { background:#c0392b; }
+.field-list { border:1px solid #ccc; border-radius:3px; max-height:150px; overflow-y:auto; margin-bottom:8px; }
+.fl-hd { display:flex; gap:6px; padding:4px 8px; background:#f0f0f0; border-bottom:1px solid #ddd; position:sticky; top:0; }
+.fl-hd button { font-size:11px; padding:2px 8px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:3px; }
+.fi { display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #f0f0f0; cursor:pointer; font-size:12px; }
+.fi:hover { background:#f5f5f5; }
+.fi.on { background:#eaf3ff; }
+.prog-wrap { height:6px; background:#e0e0e0; border-radius:3px; margin-bottom:8px; overflow:hidden; display:none; }
+.prog-fill { height:100%; width:0%; background:#1a3a2a; border-radius:3px; transition:width .3s; }
+.divider { border:none; border-top:1px solid #eee; margin:10px 0; }
+.login-box { border:1px solid #ddd; border-radius:4px; padding:10px; margin-bottom:10px; background:#f9f9f9; }
+.row2 { display:flex; gap:8px; }
+.row2 > * { flex:1; }
+.badge { display:inline-block; padding:1px 7px; background:#1a3a2a; color:#fff; border-radius:9px; font-size:11px; font-weight:700; margin-left:5px; }
+.dl-box { background:#1a3a2a; color:#fff; padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; display:none; }
+.dl-box a { color:#7dffb3; font-weight:700; font-size:14px; text-decoration:none; display:block; padding:8px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:6px; }
+.dl-box a:hover { background:rgba(255,255,255,0.2); }
+.filter-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+.filter-row select { margin:0; flex:1; }
+.filter-row input { margin:0; flex:1; }
+.filter-row button { flex:0 0 auto; padding:4px 8px; font-size:11px; background:#fff; border:1px solid #ccc; border-radius:3px; cursor:pointer; white-space:nowrap; }
+.filter-tag { display:inline-block; background:#eaf3ff; border:1px solid #bdd4f0; border-radius:12px; padding:2px 8px; font-size:11px; color:#1a4f8a; margin:2px; }
+.filter-tag button { background:none; border:none; color:#c0392b; cursor:pointer; font-size:12px; margin-left:3px; padding:0; }
+</style>
 </head>
 <body>
+<div class="hdr">&#11015; Export to KMZ</div>
+<div class="body">
 
-<div class="container">
-    <div class="header">BDC Asset Exporter</div>
+<div id="sConn" class="bar warn">&#9675; Initializing...</div>
+<div id="sToken" class="bar ok" style="display:none;"></div>
 
-    <!-- LOGIN SECTION: Required for secured layers -->
-    <div id="loginSection" class="login-box">
-        <div style="font-size: 11px; font-weight: bold; color: #d35400;">🔒 Secure Layer Login</div>
-        <input type="text" id="user" placeholder="Username (hkhalid)">
-        <input type="password" id="pass" placeholder="Password">
-        <button class="btn btn-login" onclick="getToken()">1. Login to Server</button>
-    </div>
-
-    <!-- EXPORT SECTION: Hidden until login is successful -->
-    <div id="exportSection" class="hidden">
-        <label style="font-size: 11px; font-weight:bold;">Current Map Filter:</label>
-        <input type="text" id="sqlFilter" value="1=1">
-        <button id="expBtn" class="btn" onclick="runExport()">2. DOWNLOAD KMZ</button>
-    </div>
-    
-    <div id="status">Please login to start.</div>
+<!-- Login -->
+<div id="loginBox" class="login-box" style="display:none;">
+  <div style="font-weight:700;font-size:12px;margin-bottom:8px;">&#128274; Enterprise Login</div>
+  <div class="row2">
+    <div><label class="lbl">Username</label><input type="text" id="iUser" value="hkhalid"></div>
+    <div><label class="lbl">Password</label><input type="password" id="iPass" placeholder="Password"></div>
+  </div>
+  <button class="btn" id="btnLogin" onclick="doLogin()">&#128274; Login</button>
+  <div id="loginErr" style="display:none;" class="bar err"></div>
 </div>
 
+<!-- Layer URL -->
+<div class="sec">Feature Layer URL</div>
+<textarea id="layerUrl" rows="2">https://arcgis.balad.com.sa/server/rest/services/Hosted/Final_GDB_BDC_Project_Analysis/FeatureServer/1</textarea>
+<button class="btn" id="btnLoad" onclick="loadFields()" disabled>&#8635; Load Fields from Layer</button>
+
+<!-- Fields -->
+<div id="fieldSec" style="display:none;">
+  <div class="sec">Popup Fields <span id="selBadge" class="badge">0</span></div>
+  <div class="field-list">
+    <div class="fl-hd">
+      <button onclick="selAll()">All</button>
+      <button onclick="selNone()">None</button>
+    </div>
+    <div id="fieldItems"></div>
+  </div>
+</div>
+
+<!-- Filter builder -->
+<div id="filterSec" style="display:none;">
+  <div class="sec">Filter (replaces your map filters)</div>
+  <div class="filter-row">
+    <select id="fField"><option value="">-- Select Field --</option></select>
+    <select id="fOp">
+      <option value="=">=</option>
+      <option value="<>">≠</option>
+      <option value="LIKE">LIKE</option>
+      <option value="IN">IN (comma separated)</option>
+      <option value="IS NULL">IS NULL</option>
+      <option value="IS NOT NULL">IS NOT NULL</option>
+    </select>
+    <input type="text" id="fVal" placeholder="Value" style="margin:0;flex:1;">
+    <button onclick="addFilter()">+ Add</button>
+  </div>
+  <div id="filterTags" style="margin-bottom:6px;min-height:20px;"></div>
+  <div id="wherePreview" class="bar info" style="font-family:monospace;font-size:11px;word-break:break-all;display:none;"></div>
+  <button class="btn" onclick="clearFilters()" style="margin-bottom:4px;">&#215; Clear All Filters</button>
+</div>
+
+<!-- Output -->
+<div class="sec">Output File Name</div>
+<input type="text" id="outName" value="BDC_Assets_Export">
+
+<hr class="divider">
+
+<!-- Export button -->
+<button class="btn-exp" id="btnExp" onclick="doExport()" disabled>&#11015; Load Fields First</button>
+<div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill"></div></div>
+<div id="msgBox" class="bar" style="display:none;"></div>
+
+<!-- Download box - appears after export -->
+<div class="dl-box" id="dlBox">
+  <div>&#10003; Export Complete! Click below to download:</div>
+  <a id="dlLink" href="#" download="">&#11015; Download KMZ File</a>
+  <div style="font-size:10px;margin-top:6px;opacity:0.7;">If download doesn't start, right-click the button above → Save link as</div>
+</div>
+
+</div><!-- /body -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-    const SERVER_URL = "https://arcgis.balad.com.sa/server";
-    const LAYER_URL = "https://arcgis.balad.com.sa/server/rest/services/Hosted/Final_GDB_BDC_Project_Analysis/FeatureServer/1";
-    let myToken = "";
+var PORTAL = 'https://arcgis.balad.com.sa/portal';
+var SERVER = 'https://arcgis.balad.com.sa/server';
+var token = '';
+var allFields = [];
+var selFields = [];
+var titleField = '';
+var filters = []; // array of {field, op, val}
+var lastBlobUrl = '';
 
-    // 1. GET THE KEY (TOKEN)
-    async function getToken() {
-        const u = document.getElementById('user').value;
-        const p = document.getElementById('pass').value;
-        const status = document.getElementById('status');
-        
-        if(!u || !p) { alert("Enter username and password"); return; }
-        
-        status.innerText = "Authenticating...";
-        
-        try {
-            const formData = new URLSearchParams();
-            formData.append('username', u);
-            formData.append('password', p);
-            formData.append('client', 'requestip');
-            formData.append('expiration', '60');
-            formData.append('f', 'json');
+// ── UI ────────────────────────────────────────────────────────────────────────
+function bar(id, html, cls) {
+  var el = document.getElementById(id);
+  el.className = 'bar ' + (cls||'info');
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function show(id, d) { document.getElementById(id).style.display = d||'block'; }
+function prog(p) { document.getElementById('progFill').style.width = p + '%'; }
+function showProg(v) { document.getElementById('progWrap').style.display = v?'block':'none'; }
+function showMsg(txt, cls) { bar('msgBox', txt, cls||'info'); }
+function hideMsg() { hide('msgBox'); }
+function setExpBtn(s, lbl) {
+  var b = document.getElementById('btnExp');
+  b.className = 'btn-exp' + (s==='done'?' done':s==='err'?' errb':'');
+  b.textContent = lbl || (s==='idle'?'\u2B07 Export to KMZ':s==='run'?'\u23F3 Exporting...':s==='done'?'\u2713 Export Again':'\u21BA Try Again');
+  b.disabled = s==='run' || s==='nofield';
+}
 
-            const res = await fetch(`${SERVER_URL}/tokens/generateToken`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-
-            if (data.token) {
-                myToken = data.token;
-                status.innerText = "✓ Login Successful";
-                status.style.color = "green";
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('exportSection').classList.remove('hidden');
-                trySync(); // Try to get the map filter immediately
-            } else {
-                throw new Error(data.error.details[0] || "Invalid Login");
-            }
-        } catch (err) {
-            status.innerText = "Login Error: " + err.message;
-            status.style.color = "red";
+// ── TOKEN ─────────────────────────────────────────────────────────────────────
+async function tryGetToken() {
+  var wins = [window, window.parent, window.top];
+  for (var i = 0; i < wins.length; i++) {
+    try {
+      var w = wins[i];
+      if (w.__esri && w.__esri.id) {
+        var creds = w.__esri.id.credentials || [];
+        for (var c = 0; c < creds.length; c++) {
+          if (creds[c] && creds[c].token) return creds[c].token;
         }
-    }
-
-    // 2. TRY TO SYNC MAP FILTER
-    function trySync() {
-        try {
-            const parentWin = window.parent;
-            if (parentWin && parentWin.__jimuMapViews) {
-                const views = Object.values(parentWin.__jimuMapViews);
-                if (views.length > 0) {
-                    const layer = views[0].view.map.allLayers.find(l => l.url && l.url.includes("Final_GDB_BDC"));
-                    if (layer && layer.definitionExpression) {
-                        document.getElementById('sqlFilter').value = layer.definitionExpression;
-                    }
-                }
-            }
-        } catch (e) { /* Browser security may block this in Code mode */ }
-    }
-    setInterval(trySync, 3000);
-
-    // 3. DOWNLOAD KMZ
-    async function runExport() {
-        const status = document.getElementById('status');
-        const filter = document.getElementById('sqlFilter').value || "1=1";
-        status.innerText = "Downloading assets...";
-
-        try {
-            const qUrl = `${LAYER_URL}/query?where=${encodeURIComponent(filter)}&outFields=*&f=json&returnGeometry=true&outSR=4326&token=${myToken}`;
-            const response = await fetch(qUrl);
-            const data = await response.json();
-
-            if (!data.features || data.features.length === 0) {
-                status.innerText = "No assets found for this filter.";
-                return;
-            }
-
-            status.innerText = `Generating KMZ for ${data.features.length} features...`;
-
-            let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>BDC Export</name>`;
-            
-            data.features.forEach(f => {
-                const name = f.attributes.assets_id || "Asset";
-                kml += `<Placemark><name>${name}</name>`;
-                
-                // ADD POLYGON SUPPORT
-                if (f.geometry && f.geometry.rings) {
-                    kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>`;
-                    f.geometry.rings[0].forEach(pt => {
-                        kml += `${pt[0]},${pt[1]},0 `;
-                    });
-                    kml += `</coordinates></LinearRing></outerBoundaryIs></Polygon>`;
-                } 
-                // ADD POINT SUPPORT
-                else if (f.geometry && f.geometry.x) {
-                    kml += `<Point><coordinates>${f.geometry.x},${f.geometry.y},0</coordinates></Point>`;
-                }
-                kml += `</Placemark>`;
+      }
+      if (w.require) {
+        var t = await new Promise(function(res) {
+          try {
+            w.require(['esri/identity/IdentityManager'], function(IM) {
+              try { var cr = IM.credentials; res(cr && cr.length ? cr[0].token || '' : ''); }
+              catch(e) { res(''); }
             });
-            kml += `</Document></kml>`;
-
-            const zip = new JSZip();
-            zip.file("doc.kml", kml);
-            const content = await zip.generateAsync({type:"blob"});
-
-            const url = window.URL.createObjectURL(content);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "BDC_Assets_Export.kmz";
-            document.body.appendChild(a);
-            a.click();
-            status.innerText = "✓ Export Done! Check Downloads.";
-        } catch (err) {
-            status.innerText = "Export Error: " + err.message;
-        }
+          } catch(e) { res(''); }
+          setTimeout(function() { res(''); }, 1200);
+        });
+        if (t) return t;
+      }
+    } catch(e) {}
+  }
+  try {
+    var r = await fetch(PORTAL + '/sharing/rest/portals/self?f=json', { credentials: 'include' });
+    var d = await r.json();
+    if (d.id && !d.error) {
+      var tr = await fetch(PORTAL + '/sharing/rest/generateToken', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'f=json&request=gettoken&expiration=120&referer=' + encodeURIComponent(location.origin)
+      });
+      var td = await tr.json();
+      if (td.token) return td.token;
     }
+  } catch(e) {}
+  return '';
+}
+
+async function doLogin() {
+  var user = document.getElementById('iUser').value.trim();
+  var pass = document.getElementById('iPass').value.trim();
+  if (!user || !pass) { showLoginErr('Enter username and password'); return; }
+  document.getElementById('btnLogin').disabled = true;
+  document.getElementById('btnLogin').textContent = 'Logging in...';
+  hide('loginErr');
+  try {
+    var body = new URLSearchParams({ username: user, password: pass, client: 'requestip', expiration: '480', f: 'json' });
+    var endpoints = [PORTAL + '/sharing/rest/generateToken', SERVER + '/tokens/generateToken'];
+    var found = false;
+    for (var i = 0; i < endpoints.length && !found; i++) {
+      var r = await fetch(endpoints[i], { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
+      var d = await r.json();
+      if (!d.error && d.token) { token = d.token; found = true; }
+    }
+    if (!found) throw new Error('Invalid credentials');
+    onTokenOk();
+  } catch(e) {
+    showLoginErr('Login failed: ' + e.message);
+    document.getElementById('btnLogin').disabled = false;
+    document.getElementById('btnLogin').textContent = '\uD83D\uDD12 Login';
+  }
+}
+function showLoginErr(m) { var el = document.getElementById('loginErr'); el.textContent = m; el.style.display = 'block'; }
+function onTokenOk() {
+  hide('loginBox');
+  bar('sConn', '\u25CF Connected to Enterprise', 'ok');
+  bar('sToken', '\uD83D\uDD12 Token active', 'ok');
+  show('sToken');
+  document.getElementById('btnLoad').disabled = false;
+  loadFields();
+}
+window.addEventListener('load', async function() {
+  bar('sConn', '\u25CB Detecting session...', 'warn');
+  var t = await tryGetToken();
+  if (t) { token = t; onTokenOk(); }
+  else { bar('sConn', '\u26A0 Login required', 'warn'); show('loginBox'); }
+});
+
+// ── FILTER BUILDER ────────────────────────────────────────────────────────────
+function buildWhere() {
+  if (!filters.length) return '1=1';
+  return filters.map(function(f) {
+    if (f.op === 'IS NULL' || f.op === 'IS NOT NULL') return f.field + ' ' + f.op;
+    if (f.op === 'IN') {
+      var vals = f.val.split(',').map(function(v) { return "'" + v.trim().replace(/'/g, "''") + "'"; }).join(',');
+      return f.field + ' IN (' + vals + ')';
+    }
+    if (f.op === 'LIKE') return f.field + " LIKE '%" + f.val.replace(/'/g, "''") + "%'";
+    // Check if numeric
+    var isNum = !isNaN(f.val) && f.val.trim() !== '';
+    return f.field + ' ' + f.op + ' ' + (isNum ? f.val : "'" + f.val.replace(/'/g, "''") + "'");
+  }).join(' AND ');
+}
+
+function addFilter() {
+  var field = document.getElementById('fField').value;
+  var op = document.getElementById('fOp').value;
+  var val = document.getElementById('fVal').value.trim();
+  if (!field) { alert('Select a field first'); return; }
+  if (op !== 'IS NULL' && op !== 'IS NOT NULL' && !val) { alert('Enter a value'); return; }
+  filters.push({ field: field, op: op, val: val });
+  document.getElementById('fVal').value = '';
+  renderFilters();
+}
+
+function removeFilter(i) {
+  filters.splice(i, 1);
+  renderFilters();
+}
+
+function clearFilters() {
+  filters = [];
+  renderFilters();
+}
+
+function renderFilters() {
+  var container = document.getElementById('filterTags');
+  container.innerHTML = '';
+  filters.forEach(function(f, i) {
+    var tag = document.createElement('span');
+    tag.className = 'filter-tag';
+    var label = f.op === 'IS NULL' || f.op === 'IS NOT NULL' ? f.field + ' ' + f.op : f.field + ' ' + f.op + ' ' + f.val;
+    tag.innerHTML = label + '<button onclick="removeFilter(' + i + ')">&#215;</button>';
+    container.appendChild(tag);
+  });
+  var where = buildWhere();
+  if (filters.length) {
+    bar('wherePreview', 'WHERE: ' + where, 'info');
+    show('wherePreview');
+  } else {
+    hide('wherePreview');
+  }
+  // Update export button label
+  if (allFields.length) updateCount();
+}
+
+async function updateCount() {
+  if (!token) return;
+  try {
+    var url = document.getElementById('layerUrl').value.trim();
+    var where = buildWhere();
+    var p = new URLSearchParams({ where: where, returnCountOnly: 'true', f: 'json', token: token });
+    var r = await fetch(url + '/query', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+    var d = await r.json();
+    if (!d.error && d.count !== undefined) {
+      setExpBtn('idle', '\u2B07 Export ' + d.count + ' Features to KMZ');
+    }
+  } catch(e) {}
+}
+
+// ── LOAD FIELDS ───────────────────────────────────────────────────────────────
+async function loadFields() {
+  var url = document.getElementById('layerUrl').value.trim();
+  if (!url || !token) return;
+  document.getElementById('btnLoad').textContent = 'Loading...';
+  document.getElementById('btnLoad').disabled = true;
+  try {
+    var r = await fetch(url + '?f=json&token=' + encodeURIComponent(token), { credentials: 'include' });
+    var d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+
+    var skip = ['shape', 'shape_length', 'shape_area', 'globalid', 'creationdate', 'editdate', 'creator', 'editor'];
+    allFields = (d.fields || []).map(function(f) { return f.name; })
+      .filter(function(n) { return skip.indexOf(n.toLowerCase()) === -1 && n.toLowerCase() !== 'objectid'; });
+
+    // Auto-detect title field
+    var candidates = ['assets_id', 'asset_id', 'name', 'title'];
+    titleField = '';
+    for (var i = 0; i < candidates.length; i++) {
+      var match = allFields.filter(function(f) { return f.toLowerCase() === candidates[i]; });
+      if (match.length) { titleField = match[0]; break; }
+    }
+    if (!titleField && allFields.length) titleField = allFields[0];
+
+    selFields = allFields.slice();
+    renderFields();
+
+    // Populate filter field dropdown
+    var fField = document.getElementById('fField');
+    fField.innerHTML = '<option value="">-- Select Field --</option>';
+    allFields.forEach(function(f) {
+      var opt = document.createElement('option');
+      opt.value = f; opt.textContent = f;
+      fField.appendChild(opt);
+    });
+
+    show('fieldSec');
+    show('filterSec');
+    setExpBtn('idle', '\u2B07 Export All Features to KMZ');
+    showMsg('\u2713 ' + allFields.length + ' fields loaded. KML title field: ' + titleField, 'ok');
+    setTimeout(function() { hideMsg(); }, 3000);
+    updateCount();
+  } catch(e) {
+    showMsg('Load failed: ' + e.message, 'err');
+    if (e.message.toLowerCase().includes('token')) {
+      token = ''; show('loginBox');
+      bar('sConn', '\u26A0 Session expired', 'warn');
+    }
+  }
+  document.getElementById('btnLoad').textContent = '\u21BB Load Fields from Layer';
+  document.getElementById('btnLoad').disabled = false;
+}
+
+function renderFields() {
+  var c = document.getElementById('fieldItems');
+  c.innerHTML = '';
+  allFields.forEach(function(f) {
+    var on = selFields.indexOf(f) > -1;
+    var d = document.createElement('div');
+    d.className = 'fi' + (on ? ' on' : '');
+    d.innerHTML = '<input type="checkbox"' + (on ? ' checked' : '') + '><span>' + f + '</span>';
+    d.querySelector('input').addEventListener('change', function(e) {
+      if (e.target.checked) { if (selFields.indexOf(f) === -1) selFields.push(f); d.classList.add('on'); }
+      else { selFields = selFields.filter(function(x) { return x !== f; }); d.classList.remove('on'); }
+      document.getElementById('selBadge').textContent = selFields.length;
+    });
+    c.appendChild(d);
+  });
+  document.getElementById('selBadge').textContent = selFields.length;
+}
+function selAll() { selFields = allFields.slice(); renderFields(); }
+function selNone() { selFields = []; renderFields(); }
+
+// ── BUILD KML ─────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildKml(feats, fields, name) {
+  var pms = feats.map(function(f) {
+    var a = f.attributes || {};
+    var g = f.geometry;
+    var title = esc(a[titleField] || Object.values(a)[0] || 'Asset');
+    var rows = fields.map(function(k) {
+      var v = a[k];
+      if (v == null || v === '') return '';
+      return '<tr><td style="padding:3px 8px;border:1px solid #ccc;background:#f5f5f5;font-weight:bold;white-space:nowrap">' + esc(k) + '</td><td style="padding:3px 8px;border:1px solid #ccc">' + esc(v) + '</td></tr>';
+    }).filter(Boolean).join('');
+    var desc = '<![CDATA[<table style="border-collapse:collapse;font-size:12px;font-family:Arial">' + rows + '</table>]]>';
+    var geo = '';
+    if (g) {
+      if (g.rings) { var co = g.rings[0].map(function(p){return p[0]+','+p[1]+',0';}).join(' '); geo = '<Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>'+co+'</coordinates></LinearRing></outerBoundaryIs></Polygon>'; }
+      else if (g.paths) { var co = g.paths[0].map(function(p){return p[0]+','+p[1]+',0';}).join(' '); geo = '<LineString><tessellate>1</tessellate><coordinates>'+co+'</coordinates></LineString>'; }
+      else if (g.x != null) { geo = '<Point><coordinates>'+g.x+','+g.y+',0</coordinates></Point>'; }
+    }
+    return '<Placemark><name>'+title+'</name><description>'+desc+'</description><styleUrl>#s</styleUrl>'+geo+'</Placemark>';
+  });
+  return '<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>'+esc(name)+'</name><Style id="s"><PolyStyle><color>7f1a3a2a</color><outline>1</outline></PolyStyle><LineStyle><color>ff1a3a2a</color><width>2</width></LineStyle><LabelStyle><scale>1.2</scale></LabelStyle></Style>'+pms.join('')+'</Document></kml>';
+}
+
+// ── QUERY ─────────────────────────────────────────────────────────────────────
+async function queryAll(url, where, fields) {
+  var all = [], offset = 0, pageSize = 1000, more = true;
+  while (more) {
+    var p = new URLSearchParams({
+      where: where || '1=1',
+      outFields: fields.join(','),
+      returnGeometry: 'true',
+      outSR: '4326',
+      f: 'json',
+      resultOffset: String(offset),
+      resultRecordCount: String(pageSize),
+      token: token
+    });
+    var r = await fetch(url + '/query', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    var fs = d.features || [];
+    all = all.concat(fs);
+    offset += fs.length;
+    more = d.exceededTransferLimit === true && fs.length > 0;
+  }
+  return all;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+async function doExport() {
+  if (!selFields.length) { showMsg('Select at least one popup field.', 'err'); return; }
+  if (!token) { showMsg('Not logged in.', 'err'); return; }
+
+  setExpBtn('run');
+  showProg(true);
+  prog(5);
+  hideMsg();
+  hide('dlBox');
+
+  // Revoke previous blob
+  if (lastBlobUrl) { try { URL.revokeObjectURL(lastBlobUrl); } catch(e) {} lastBlobUrl = ''; }
+
+  try {
+    var url = document.getElementById('layerUrl').value.trim();
+    var name = document.getElementById('outName').value.trim() || 'BDC_Export';
+    var where = buildWhere();
+
+    showMsg('Querying features... (' + (where === '1=1' ? 'no filter' : where.substring(0, 60)) + ')', 'info');
+    prog(15);
+
+    var qFields = selFields.slice();
+    if (titleField && qFields.indexOf(titleField) === -1) qFields.unshift(titleField);
+
+    var feats = await queryAll(url, where, qFields);
+    if (!feats.length) { setExpBtn('err'); showProg(false); showMsg('No features found.', 'err'); return; }
+
+    prog(50);
+    showMsg('Building KML for ' + feats.length + ' features...', 'info');
+    var kml = buildKml(feats, selFields, name);
+
+    prog(75);
+    showMsg('Creating KMZ...', 'info');
+
+    var filename, blob;
+    if (typeof JSZip !== 'undefined') {
+      var zip = new JSZip();
+      zip.file('doc.kml', kml);
+      blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      filename = name + '.kmz';
+    } else {
+      blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml;charset=utf-8' });
+      filename = name + '.kml';
+    }
+
+    prog(90);
+
+    // Create download URL and show download button
+    lastBlobUrl = URL.createObjectURL(blob);
+    var dlLink = document.getElementById('dlLink');
+    dlLink.href = lastBlobUrl;
+    dlLink.download = filename;
+    dlLink.textContent = '\u2B07 Download ' + filename + ' (' + feats.length + ' features)';
+
+    // Show download box
+    show('dlBox');
+
+    // Also try automatic download
+    try {
+      var tempA = document.createElement('a');
+      tempA.href = lastBlobUrl;
+      tempA.download = filename;
+      tempA.style.display = 'none';
+      document.body.appendChild(tempA);
+      tempA.click();
+      setTimeout(function() {
+        document.body.removeChild(tempA);
+      }, 1000);
+    } catch(e) {}
+
+    prog(100);
+    setExpBtn('done', '\u2713 Export Again');
+    showMsg('\u2713 ' + feats.length + ' features ready! Click the green button below to download.', 'ok');
+
+  } catch(e) {
+    setExpBtn('err');
+    showProg(false);
+    showMsg('Export failed: ' + e.message, 'err');
+  }
+}
 </script>
 </body>
 </html>
